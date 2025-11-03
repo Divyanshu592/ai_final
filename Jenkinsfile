@@ -13,7 +13,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout SCM') {
             steps {
                 git(
@@ -29,29 +28,6 @@ pipeline {
                 script {
                     // Build Docker image
                     bat "docker build -t ${DOCKER_USERNAME}/${IMAGE_NAME}:latest ."
-                }
-            }
-        }
-
-        stage('Run Docker Image (Test)') {
-            steps {
-                script {
-                    // Run container for testing
-                    bat "docker run --rm ${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    // Login to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                        bat "docker login -u %USER% -p %PASS%"
-                        // Push image
-                        bat "docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
-                        bat "docker logout"
-                    }
                 }
             }
         }
