@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub-creds' // Jenkins credentials ID
-        IMAGE_NAME = 'yourdockerhubusername/mlops-case-study'
+        IMAGE_NAME = 'divyanshu123/mlops-case-study'
         IMAGE_TAG = "${env.BUILD_ID}"
     }
     stages {
@@ -13,26 +13,26 @@ pipeline {
         }
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
             }
         }
         stage('Run Docker Image (Test)') {
             steps {
-                sh "docker run --rm ${IMAGE_NAME}:${IMAGE_TAG}"
+                bat "docker run --rm %IMAGE_NAME%:%IMAGE_TAG%"
             }
         }
         stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                    bat "docker push %IMAGE_NAME%:%IMAGE_TAG%"
                 }
             }
         }
     }
     post {
         always {
-            sh 'docker logout || true'
+            bat 'docker logout || exit 0'
         }
     }
 }
