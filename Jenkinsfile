@@ -1,38 +1,72 @@
 pipeline {
     agent any
+
     environment {
-        DOCKERHUB_CREDENTIALS = 'dockerhub-creds' // Jenkins credentials ID
-        IMAGE_NAME = 'divyanshu123/mlops-case-study'
-        IMAGE_TAG = "${env.BUILD_ID}"
+        // Docker Hub credentials ID in Jenkins
+        DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
+        // Docker Hub username
+        DOCKER_USERNAME = 'divyanshu123'
+        // Docker image name
+        IMAGE_NAME = 'mlops-case-study'
+        // GitHub credentials ID in Jenkins
+        GIT_CREDENTIALS_ID = 'github-creds'
     }
+
     stages {
-        stage('Checkout') {
+
+        stage('Checkout SCM') {
             steps {
-                checkout scm
+                git(
+                    url: 'https://github.com/Divyanshu592/ai_final.git',
+                    branch: 'master',
+                    credentialsId: "${GIT_CREDENTIALS_ID}"
+                )
             }
         }
+
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
+                script {
+                    // Build Docker image
+                    bat "docker build -t ${DOCKER_USERNAME}/${IMAGE_NAME}:latest ."
+                }
             }
         }
+
         stage('Run Docker Image (Test)') {
             steps {
-                bat "docker run --rm %IMAGE_NAME%:%IMAGE_TAG%"
+                script {
+                    // Run container for testing
+                    bat "docker run --rm ${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
+                }
             }
         }
+
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat "docker push %IMAGE_NAME%:%IMAGE_TAG%"
+                script {
+                    // Login to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        bat "docker login -u %USER% -p %PASS%"
+                        // Push image
+                        bat "docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
+                        bat "docker logout"
+                    }
                 }
             }
         }
     }
+
     post {
         always {
-            bat 'docker logout || exit 0'
+            echo "Cleaning workspace..."
+            cleanWs()
+        }
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs."
         }
     }
 }
